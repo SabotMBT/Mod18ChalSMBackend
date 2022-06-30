@@ -1,6 +1,10 @@
-const { Schema, model } = require("mongoose");
-const bcrypt = require("bcrypt");
-const saltRounds = 10;
+const { query } = require("express");
+
+const mongoose = require("mongoose"),
+  Schema = mongoose.Schema,
+  model = mongoose.model,
+  bcrypt = require("bcrypt"),
+  SALT_WORK_FACTOR = 10;
 
 const validateEmail = function (email) {
   const re = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -66,7 +70,7 @@ userSchema.pre("save", function (next) {
   if (!user.isModified("password")) return next();
 
   // generate a salt
-  bcrypt.genSalt(saltRounds, function (err, salt) {
+  bcrypt.genSalt(SALT_WORK_FACTOR, function (err, salt) {
     if (err) return next(err);
 
     // hash the password using our new salt
@@ -77,6 +81,21 @@ userSchema.pre("save", function (next) {
       next();
     });
   });
+});
+
+userSchema.pre("findOneAndUpdate", function (next) {
+  const password = this.getUpdate().$set.password;
+  if (!password) {
+    return next();
+  }
+  try {
+    const salt = bcrypt.genSaltSync();
+    const hash = bcrypt.hashSync(password, salt);
+    this.getUpdate().$set.password = hash;
+    next();
+  } catch (error) {
+    return next(error);
+  }
 });
 
 userSchema.methods.comparePassword = function (candidatePassword, cb) {

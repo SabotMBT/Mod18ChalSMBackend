@@ -207,4 +207,6 @@ connection.once("open", async () => {
     { userName: "Bagrat" },
     { followedBy: u3FollowedBy }
   );
+  console.info("Seeding complete! 🌱");
+  process.exit(0);
 });
